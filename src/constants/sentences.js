@@ -1,12 +1,16 @@
 const lines = [
-  "there are some spherical balloons",
-  "For each balloon, provided input is the start and end coordinates of the horizontal diameter",
+  "Line One",
+  "Line Two..",
+  "Line Three",
 ];
+
+let currIdx = 0;
 export const getLine = () => {
+  if(currIdx === lines.length) return -1;
   let lineArray = [];
-  let line = lines[0];
+  let line = lines[currIdx++];
   for (let i = 0; i < line.length; i++) {
-      lineArray.push(`${line[i]}`);
+    lineArray.push(`${line[i]}`);
   }
 
   return lineArray;
