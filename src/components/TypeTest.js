@@ -8,12 +8,14 @@ export default function TypeTest() {
   const charIndex = useRef(0);
   const [isNewLine, setIsNewLine] = useState(true);
   const [linesOver, setLinesOver] = useState(false);
-  //true: start, false: end
   const [typingStart, setTypingStart] = useState(false);
   const typingStartRef = useRef(typingStart);
   const [typingSpeed, setTypingSpeed] = useState(0);
   const timerId = useRef(-1);
   const startTime = useRef(-1);
+  const charCount = useRef(0);
+  const wrongTypeCount = useRef(0);
+  const [accuracy, setAccuracy] = useState(0);
 
   const colors = {
     base: "skyblue",
@@ -30,7 +32,7 @@ export default function TypeTest() {
 
   //update new lines
   useEffect(() => {
-    if (line.length == 0) return;
+    if (line.length === 0) return;
     if (isNewLine) {
       newLineInit();
       setIsNewLine(false);
@@ -42,32 +44,33 @@ export default function TypeTest() {
     console.log("Typing Start: ", typingStart, typingStartRef.current);
     if (typingStartRef.current) {
       //start setInterval
-      if (startTime.current == -1) {
+      if (startTime.current === -1) {
         console.log("Timer started");
         startTime.current = new Date().getTime() / 1000;
 
         timerId.current = setInterval(() => {
+          console.log("Calculating speed and accuracy");
           setTypingSpeed(getTypingSpeed());
+          setAccuracy(getAccuracy());
         }, 1000);
       }
     }
-    // else {
-    //   //end setInterval
-    //   if (startTime.current !== -1) {
-    //     console.log("Typing Finished");
-    //     clearInterval(timerId.current);
-    //   }
-    // }
   }, [typingStart]);
 
   const getTypingSpeed = () => {
     const currTime = new Date().getTime() / 1000;
     const timeUsed = (currTime - startTime.current) / 60;
     console.log("Time Used:", timeUsed);
-    let currCharIndex = charIndex.current;
-    let speed = currCharIndex / (5 * timeUsed);
+    let speed = charCount.current / (5 * timeUsed);
     console.log("Speed: ", speed);
     return Math.floor(speed);
+  };
+
+  const getAccuracy = () => {
+    let currAccuracy =
+      (charCount.current / (wrongTypeCount.current + charCount.current)) * 100;
+    console.log("Accuracy: ", currAccuracy);
+    return currAccuracy.toFixed(2);
   };
 
   const newLineInit = () => {
@@ -96,6 +99,7 @@ export default function TypeTest() {
     if (idx < lineRef.current.length) {
       if (e.key === lineRef.current[idx]) {
         charIndex.current++;
+        charCount.current++;
         changeColor(idx, colors.correct);
 
         //change color of next to highlight the current character
@@ -104,14 +108,11 @@ export default function TypeTest() {
         //if no next character, then end the typing
         else {
           cleanupCurrentLine();
-
-          //update the final speed
-          setTypingSpeed(getTypingSpeed());
-
           changeToNextLine();
         }
       } else {
         changeColor(idx, colors.wrong);
+        wrongTypeCount.current++;
       }
     }
   }, []);
@@ -122,6 +123,10 @@ export default function TypeTest() {
     console.log("Over!!!!!!!");
 
     window.removeEventListener("keypress", keypressHandler);
+
+    //update the final speed and accuracy
+    setTypingSpeed(getTypingSpeed());
+    setAccuracy(getAccuracy());
   };
 
   const changeToNextLine = () => {
@@ -174,6 +179,7 @@ export default function TypeTest() {
           Start Typing
         </button> */}
         <UserSpeed>Speed: {typingSpeed} wpm</UserSpeed>
+        <UserAccuracy>Accuracy: {accuracy}%</UserAccuracy>
       </UserTypingContainer>
     </Container>
   );
@@ -197,4 +203,5 @@ const CharacterContainer = styled.div`
   }
 `;
 const UserSpeed = styled.div``;
+const UserAccuracy = styled.div``;
 const LinesOverContainer = styled.div``;
