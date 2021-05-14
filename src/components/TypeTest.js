@@ -13,8 +13,8 @@ export default function TypeTest() {
   const [typingSpeed, setTypingSpeed] = useState(0);
   const timerId = useRef(-1);
   const startTime = useRef(-1);
-  const charCount = useRef(0);
-  const wrongTypeCount = useRef(0);
+  const correctCharCount = useRef(0);
+  const totalKeyCount = useRef(0);
   const [accuracy, setAccuracy] = useState(0);
 
   const colors = {
@@ -26,7 +26,7 @@ export default function TypeTest() {
 
   //set initial values
   useEffect(() => {
-    console.log("Setting first line");
+    // console.log("Setting first line");
     changeToNextLine();
   }, []);
 
@@ -41,15 +41,15 @@ export default function TypeTest() {
 
   //start/stop typing speed interval
   useEffect(() => {
-    console.log("Typing Start: ", typingStart, typingStartRef.current);
+    // console.log("Typing Start: ", typingStart, typingStartRef.current);
     if (typingStartRef.current) {
       //start setInterval
       if (startTime.current === -1) {
-        console.log("Timer started");
+        // console.log("Timer started");
         startTime.current = new Date().getTime() / 1000;
 
         timerId.current = setInterval(() => {
-          console.log("Calculating speed and accuracy");
+          // console.log("Calculating speed and accuracy");
           setTypingSpeed(getTypingSpeed());
           setAccuracy(getAccuracy());
         }, 1000);
@@ -60,31 +60,30 @@ export default function TypeTest() {
   const getTypingSpeed = () => {
     const currTime = new Date().getTime() / 1000;
     const timeUsed = (currTime - startTime.current) / 60;
-    console.log("Time Used:", timeUsed);
-    let speed = charCount.current / (5 * timeUsed);
-    console.log("Speed: ", speed);
+    // console.log("Time Used:", timeUsed);
+    let speed = correctCharCount.current / (5 * timeUsed);
+    // console.log("Speed: ", speed);
     return Math.floor(speed);
   };
 
   const getAccuracy = () => {
-    let currAccuracy =
-      (charCount.current / (wrongTypeCount.current + charCount.current)) * 100;
-    console.log("Accuracy: ", currAccuracy);
+    let currAccuracy = (correctCharCount.current / totalKeyCount.current) * 100;
+    // console.log("Accuracy: ", currAccuracy);
     return currAccuracy.toFixed(2);
   };
 
   const newLineInit = () => {
-    console.log("Initialising Line");
+    // console.log("Initialising Line");
 
     //set all backgrounds to skyblue
     for (let i = 0; i < line.length; i++) changeColor(i, colors.base);
 
     //remove previous event listener
-    window.removeEventListener("keypress", keypressHandler);
+    window.removeEventListener("keydown", keypressHandler);
 
     changeColor(0, "#ffc55c");
     //add new event listener
-    window.addEventListener("keypress", keypressHandler);
+    window.addEventListener("keydown", keypressHandler);
   };
 
   const keypressHandler = useCallback((e) => {
@@ -94,25 +93,56 @@ export default function TypeTest() {
       typingStartRef.current = true;
     }
 
+    // console.log(e);
     const idx = charIndex.current;
-    console.log(idx, typingStartRef);
+    /*
+    Cases:
+    1. Shift -> Ignore
+    2. Correct -> Mark green , go ahead
+    3. Incorrect -> Mark red go ahead
+    4. Backspace -> mark current with its base color, go back
+    */
     if (idx < lineRef.current.length) {
-      if (e.key === lineRef.current[idx]) {
-        charIndex.current++;
-        charCount.current++;
-        changeColor(idx, colors.correct);
+      //Ignore shifts
+      if (e.key === "Shift") return;
 
-        //change color of next to highlight the current character
+      totalKeyCount.current++;
+      console.log(totalKeyCount.current);
+
+      if (e.key === "Backspace") {
+        if (idx == 0) return;
+
+        changeColor(idx, colors.base);
+        changeColor(idx - 1, colors.current);
+        charIndex.current--;
+      }
+      //Correct Key
+      else if (e.key === lineRef.current[idx]) {
+        changeColor(idx, colors.correct);
+        charIndex.current++;
+        correctCharCount.current++;
+
+        //Move to next character
         if (idx + 1 < lineRef.current.length)
           changeColor(idx + 1, colors.current);
-        //if no next character, then end the typing
+        //No more characters left
         else {
           cleanupCurrentLine();
           changeToNextLine();
         }
-      } else {
+      }
+      //Wrong Key
+      else {
         changeColor(idx, colors.wrong);
-        wrongTypeCount.current++;
+        charIndex.current++;
+        //Move to next character
+        if (idx + 1 < lineRef.current.length)
+          changeColor(idx + 1, colors.current);
+        //No more characters left
+        else {
+          cleanupCurrentLine();
+          changeToNextLine();
+        }
       }
     }
   }, []);
@@ -120,7 +150,7 @@ export default function TypeTest() {
   const cleanupCurrentLine = () => {
     setTypingStart(false);
     typingStartRef.current = false;
-    console.log("Over!!!!!!!");
+    // console.log("Over!!!!!!!");
 
     window.removeEventListener("keypress", keypressHandler);
 
@@ -130,11 +160,11 @@ export default function TypeTest() {
   };
 
   const changeToNextLine = () => {
-    console.log("Changing to next line");
+    // console.log("Changing to next line");
 
     const newLine = getLine();
     if (newLine === -1) {
-      console.log("Lines over");
+      // console.log("Lines over");
       setLinesOver(true);
       clearInterval(timerId.current);
     }
